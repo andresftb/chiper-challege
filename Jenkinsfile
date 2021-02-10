@@ -6,7 +6,6 @@ pipeline {
         }
     
     environment {
-    BITBUCKET_COMMON_CREDS = credentials('my-bitbucket-creds')
     REGISTRY_URI = registry.example.com
     REGISTRY_NAME = My_repository
     IMAGE_NAME = test
@@ -21,14 +20,12 @@ pipeline {
         stage('Build') {
             steps { 
                 sh 'npm install'v
-                sh 'make' 
-                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+                sh 'npm run build'
             }
         }
         stage('Test') {
             steps {
-                sh 'make check || true' 
-                junit '**/target/*.xml'
+                sh 'npm run test'
                 echo 'Testing my app'
             }
         }
@@ -39,11 +36,10 @@ pipeline {
               }
             }
             steps {
-                sh 'make publish'
                 
-                withCredentials([usernamePassword(credentialsId: 'YOUR_ID_DEFINED', passwordVariable: '$BITBUCKET_COMMON_CREDS_PSW', usernameVariable: '$BITBUCKET_COMMON_CREDS_USR')]) {
+                withCredentials([usernamePassword(credentialsId: 'my_docker_credentials', passwordVariable: 'password', usernameVariable: 'user')]) {
                     sh """
-                    docker login ${REGISTRY_URI} -u ${YOUR_ACCOUNT_DEFINED} -p ${YOUR_PW_DEFINED}
+                    docker login ${REGISTRY_URI} -u ${user} -p ${password}
                     """
                 }
                 echo 'Building docker image'

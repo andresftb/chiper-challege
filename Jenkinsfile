@@ -1,140 +1,48 @@
 pipeline {
- 
+    agent any
+    
     environment {
-        
-        //environment variables
-        REGISTRY_URI = registry.example.com
-        IMAGE_NAME = ubuntu:18.04
-        BUILD_NUMBER = 1.0.0
-        GIT_BRANCH = dev        
-        
-}
- 
+    BITBUCKET_COMMON_CREDS = credentials('jenkins-bitbucket-common-creds')
+    REGISTRY_URI = registry.example.com
+    REGISTRY_NAME = My_repository
+    IMAGE_NAME = test
+    VERSION_PREFIX = 1.0
+    BUILD_NUMBER = 1.0
+    WORKSPACE = development
+    GIT_BRANCH = dev
+    GIT_COMMIT = 1
+    }
+
     stages {
-        stage('Initial Notification') {
-            steps {
-                 //put webhook for your notification channel 
-                 echo 'Pipeline Start Notification'
-            }
-        }
-stage('Code Analysis') {           
-            steps {
-               //put your code scanner 
-                echo 'Code Scanning and Analysis'
-            }
-        }
- 
-        stage('Robot Testing') {
-            steps {
-                //put your Testing
-                echo 'Robot Testing Start'
-            }
-            post{
-                success{
-                    echo "Robot Testing Successfully"
-                }
-                failure{
-                    echo "Robot Testing Failed"
-                }
-            }
-        }
-stage("Build"){
-            steps {
-steps {withCredentials([usernamePassword(credentialsId: 'YOUR_ID_DEFINED', passwordVariable: 'YOUR_PW_DEFINED', usernameVariable: 'YOUR_ACCOUNT_DEFINED')]) {
-                    sh """
-                    docker login ${REGISTRY_URI} -u ${YOUR_ACCOUNT_DEFINED} -p ${YOUR_PW_DEFINED}
-                    """
-                }
-echo "Docker Build"
-sh """
-                docker build -t ${IMAGE_NAME}:${VERSION_PREFIX}${BUILD_NUMBER} ${WORKSPACE} -f Dockerfile
-                """
-echo "Docker Tag"
-sh """
-                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY_URI}/${REGISTRY_NAME}/${IMAGE_NAME}:${GIT_BRANCH}-${GIT_COMMIT}
-                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY_URI}/${REGISTRY_NAME}/${IMAGE_NAME}:${GIT_BRANCH}-${BUILD_NUMBER}
-                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY_URI}/${REGISTRY_NAME}/${IMAGE_NAME}:${GIT_BRANCH}-${LATEST}
-                """
-                
-                echo "Docker Push"
-sh """
-                    docker push ${REGISTRY_URI}/${REGISTRY_NAME}/${IMAGE_NAME}:${GIT_BRANCH}-${GIT_COMMIT}
-                    docker push ${REGISTRY_URI}/${REGISTRY_NAME}/${IMAGE_NAME}:${GIT_BRANCH}-${BUILD_NUMBER}
-                    docker push ${REGISTRY_URI}/${REGISTRY_NAME}/${IMAGE_NAME}:${GIT_BRANCH}-${LATEST}
-                """
- 
-            }
-            post{
-                success{
-                    echo "Build and Push Successfully"
-                }
-                failure{
-                    echo "Build and Push Failed"
-                }
-            }
-        }
-stage('Image Scan') {
-            steps {
-                //Put your image scanning tool 
-                echo 'Image Scanning Start'
-            }
-            post{
-                success{
-                    echo "Image Scanning Successfully"
-                }
-                failure{
-                    echo "Image Scanning Failed"
-                }
-            }
-        }
-stage("Deploy to Production"){
-            when {
-                branch 'master'
-            }
+        stage('Build') {
             steps { 
-                kubernetesDeploy kubeconfigId: 'kubeconfig-credentials-id', configs: 'YOUR_YAML_PATH/your_k8s_yaml', enableConfigSubstitution: true  // REPLACE kubeconfigId
- 
-             }
-            post{
-                success{
-                    echo "Successfully deployed to Production"
-                }
-                failure{
-                    echo "Failed deploying to Production"
-                }
+                sh 'make' 
+                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true              
             }
         }
-stage("Deploy to Staging"){
+        stage('Test') {
+            steps {
+                sh 'make check || true' 
+                junit '**/target/*.xml' 
+                echo 'Testing my app'
+            }
+        }
+        stage('Deploy') {
             when {
-                branch 'staging'
+              expression {
+                currentBuild.result == null || currentBuild.result == 'SUCCESS' 
+              }
             }
             steps {
-                kubernetesDeploy kubeconfigId: 'kubeconfig-credentials-id', configs: 'YOUR_YAML_PATH/your_k8s_yaml', enableConfigSubstitution: true  // REPLACE kubeconfigId
-             }
-            post{
-                success{
-                    echo "Successfully deployed to Staging"
-                }
-                failure{
-                    echo "Failed deploying to Staging"
-                }
+                sh 'make publish'
+                echo 'Building docker image'
+                sh """
+                 docker login ${REGISTRY_URI} -u ${BITBUCKET_COMMON_CREDS_USR} -p ${BITBUCKET_COMMON_CREDS_PSW}
+                 docker build -t ${IMAGE_NAME}:${VERSION_PREFIX}${BUILD_NUMBER} ${WORKSPACE} -f Dockerfile
+                 docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${REGISTRY_URI}/${REGISTRY_NAME}/${IMAGE_NAME}:${GIT_BRANCH}-${GIT_COMMIT}
+                 docker push ${REGISTRY_URI}/${REGISTRY_NAME}/${IMAGE_NAME}:${GIT_BRANCH}-${GIT_COMMIT}
+                """
             }
         }
-}
- 
-    post{
-        always{
-step([
-             //put your Testing
-            ])
-        }
-        success{
-            //notification webhook
-            echo 'Pipeline Execution Successfully Notification'
-}
-        failure{
-            //notification webhook
-            echo 'Pipeline Execution Failed Notification'
-}
     }
 }

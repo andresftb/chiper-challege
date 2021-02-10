@@ -25,7 +25,8 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh './jenkins/scripts/test.sh'
+                sh 'make check || true' 
+                junit '**/target/*.xml'
                 echo 'Testing my app'
             }
         }

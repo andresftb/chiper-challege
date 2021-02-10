@@ -45,4 +45,9 @@ pipeline {
             }
         }
     }
+    post {
+        failure {
+            mail to: andresftbz88@gmail.com, subject: 'The Pipeline failed'
+        }
+    }
 }

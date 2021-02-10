@@ -20,7 +20,9 @@ pipeline {
     stages {
         stage('Build') {
             steps { 
-                sh 'npm install'v     
+                sh 'npm install'v
+                sh 'make' 
+                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
             }
         }
         stage('Test') {

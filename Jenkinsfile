@@ -1,5 +1,9 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:6-alpine' 
+            args '-p 3000:3000' 
+        }
     
     environment {
     BITBUCKET_COMMON_CREDS = credentials('my-bitbucket-creds')
@@ -16,14 +20,12 @@ pipeline {
     stages {
         stage('Build') {
             steps { 
-                sh 'make' 
-                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true              
+                sh 'npm install'v     
             }
         }
         stage('Test') {
             steps {
-                sh 'make check || true' 
-                junit '**/target/*.xml' 
+                sh './jenkins/scripts/test.sh'
                 echo 'Testing my app'
             }
         }

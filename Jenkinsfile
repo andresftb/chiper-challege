@@ -2,8 +2,12 @@ pipeline {
  
     environment {
         
-        //put your own environment variables
-        REGISTRY_URI = 
+        //environment variables
+        REGISTRY_URI = registry.example.com
+        IMAGE_NAME = ubuntu:18.04
+        BUILD_NUMBER = 1.0.0
+        GIT_BRANCH = dev        
+        
 }
  
     stages {

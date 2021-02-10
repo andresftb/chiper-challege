@@ -27,6 +27,7 @@ pipeline {
   
     steps{
      echo 'deploying the application...'
+     sh 'echo myCustomEnvVar = $myCustomEnvVar'
     }
   
   }

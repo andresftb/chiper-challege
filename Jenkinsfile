@@ -1,6 +1,8 @@
 pipeline {
 
-  agent any
+  agent {
+        dockerfile:true
+  }
   
   stages{
   
@@ -8,6 +10,7 @@ pipeline {
   
     steps{
       echo 'building the application...'
+        sh 'node --version'
     }
   
   }

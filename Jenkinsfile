@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-    BITBUCKET_COMMON_CREDS = credentials('jenkins-bitbucket-common-creds')
+    BITBUCKET_COMMON_CREDS = credentials('my-bitbucket-creds')
     REGISTRY_URI = registry.example.com
     REGISTRY_NAME = My_repository
     IMAGE_NAME = test
